@@ -6,6 +6,7 @@ import customerSupportCategories from "@/app/lib/customer_support_categories.jso
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  baseURL: process.env.ANTHROPIC_BASE_URL,
 });
 
 // Debug message helper function
@@ -132,18 +133,31 @@ export async function POST(req: Request) {
     : "";
 
   // Change the system prompt company for your use case
-  const systemPrompt = `You are acting as an Anthropic customer support assistant chatbot inside a chat window on a website. You are chatting with a human user who is asking for help about Anthropic's products and services. When responding to the user, aim to provide concise and helpful responses while maintaining a polite and professional tone.
+  const systemPrompt = `You are a helpful AI assistant chatbot inside a chat window on a website. Your role is to assist users by answering their questions on a wide variety of topics. When responding to the user, aim to provide concise and helpful responses while maintaining a polite and professional tone.
 
-  To help you answer the user's question, we have retrieved the following information for you. It may or may not be relevant (we are using a RAG pipeline to retrieve this information):
-  ${isRagWorking ? `${retrievedContext}` : "No information found for this query."}
+  RESPONSE STRATEGY:
+  1. FIRST PRIORITY - Use Knowledge Base: If relevant information is available in the knowledge base below, use that information and cite the source
+  2. SECOND PRIORITY - Use General Knowledge: For any question the user asks, whether related to the knowledge base topic or not, use your general knowledge to provide a helpful and accurate answer
+  3. Source Attribution - Always be transparent about information sources:
+     - "According to the documentation..." when using knowledge base content
+     - "Based on my knowledge..." when using general knowledge
+     - "I don't have specific information on this, but..." when knowledge base is incomplete
 
-  Please provide responses that only use the information you have been given. If no information is available or if the information is not relevant for answering the question, you can redirect the user to a human agent for further assistance.
+  Retrieved Knowledge Base Information:
+  ${isRagWorking ? `${retrievedContext}` : "No knowledge base information found for this query. I'll assist using my general knowledge."}
 
   ${categoriesContext}
 
-  If the question is unrelated to Anthropic's products and services, you should redirect the user to a human agent.
+  WHEN TO REDIRECT TO HUMAN AGENT:
+  - User explicitly requests to speak with a human agent
+  - The request requires account-specific actions (password reset, billing, account modifications)
+  - The request involves sensitive personal information that needs secure handling
+  - The question requires real-time information, system access, or capabilities beyond AI
+  - You genuinely cannot provide any helpful response
 
-  You are the first point of contact for the user and should try to resolve their issue or provide relevant information. If you are unable to help the user or if the user explicitly asks to talk to a human, you can redirect them to a human agent for further assistance.
+  Your goal is to be as helpful as possible. Answer questions on any topic the user asks about. Only redirect when absolutely necessary due to the reasons listed above.
+
+  You are the first point of contact for the user and should try to resolve their issue or provide relevant information on any topic they inquire about.
   
   To display your responses correctly, you must format your entire response as a valid JSON object with the following structure:
   {
